@@ -2,7 +2,7 @@ import logging
 import json
 from pathlib import Path
 from tuya_connector import TuyaOpenAPI, TUYA_LOGGER
-from datetime import datetime, time, timedelta
+from datetime import datetime
 
 class TuyaDeviceLogProvider:
     __endpoint = "https://openapi.tuyaeu.com"

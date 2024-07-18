@@ -1,7 +1,7 @@
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from TuyaDeviceProvider import *
-from datetime import datetime, time, timedelta
+from datetime import datetime
 from collections import defaultdict
 import Credentials
 
@@ -15,12 +15,12 @@ def calculate_hours(entrence_time, exit_time):
     return round(hours_worked, 2)
 
 def filter_highest_lowest_times(data):
-    # Step 1: Group by date
+    # Grupowanie po dacie
     date_groups = defaultdict(list)
     for entry in data:
         date_groups[entry['date']].append(entry)
 
-    # Step 2: Filter to keep only highest and lowest time for each date
+    # Filtrownanie aby pozostały tylko najniższe i najwyższe dane
     result = []
     for date, entries in date_groups.items():
         # Sort entries by time
@@ -43,17 +43,22 @@ try:
     client = MongoClient(uri, server_api=ServerApi('1'))
     #Tworzenie obiektu TuyaApi
     device_provider = TuyaDeviceLogProvider(Credentials.Credentials.TuyaDevice1)
-except:
+    # Ping Bazę danych
+    client.admin.command('ping')
+except: # W przypadku błędu połączenia
     print("Błąd w połączeniu z bazą danych, albo z TuyaAPI")
 
-# Send a ping to confirm a successful connection
 if __name__ == '__main__':
+    # Zaciągnięcie logów z Tuya Api
     logs = device_provider.getDeviceLog()
-    client.admin.command('ping')
+    
+    #Kolekcje Bazy Danych
     myPracownicy =  client["pracownicy"]
     myDB =  client["czas_pracy"]
     
+    #Pętla po każdym pracwniku w bazie Pracowników ID
     for pracownik in myPracownicy['PracownicyID'].find({},{"_id": 0,"FingerID":1, "cardID":1,"imie":1,"nazwisko":1}):
+        #Szablony potrzebynych danych oraz 
         temp_insert_list = []
         insertList = []
         collection_name = pracownik["imie"]+'_'+pracownik['nazwisko']
@@ -62,43 +67,41 @@ if __name__ == '__main__':
             "date":"",
             "time":""
         }
+        entrence_time = None
+        exit_time = None
+        #Iterowanie po logach, tworzenie pomocniczej tabeli 
         for log in logs:
-            if log['value'] == pracownik['cardID'] or log['value'] == pracownik['FingerID']:
+            if log['value'] == pracownik['cardID'] or log['value'] == pracownik['FingerID']: # Znajdowanie w logach pasujacych kodów odcisków
                 temp_dict = {
                     "date": log['date'],
                     "time": log['time'],
                 }
                 temp_insert_list.append(temp_dict)
-        temp_insert_list = filter_highest_lowest_times(temp_insert_list)
-        temp_insert_list.sort(key=lambda x: (x['date'], x['time']))
-        for element in temp_insert_list:
-            print(element)
-        iteratorDate = None
-        entrence_time = None
-        exit_time = None
+        temp_insert_list = filter_highest_lowest_times(temp_insert_list) # Filtrowanie Danych
+        temp_insert_list.sort(key=lambda x: (x['date'], x['time'])) # Posortowanie pozostałych
 
-        for element in temp_insert_list:
-            if entrence_time is None: 
+
+        for element in temp_insert_list: # Iterowanie po elementach listy
+            if entrence_time is None: #Pierwszy rekord danego dnia to wejscie
                 entrence_time = element['time']
-            else:
+            else: # Drugi to wyjscie
                 exit_time = element['time']
-                hours_worked = calculate_hours(entrence_time, exit_time)  # assuming this function is defined
+                hours_worked = calculate_hours(entrence_time, exit_time) #Liczenie przepracownych godzin
 
-                # Create a dictionary for the log entry
+                # Uzupełenianie poprawnego wpisu do bazy
                 log_entry = {
                     "date": element['date'],
                     "entrence_time": entrence_time,
                     "exit_time": exit_time,
                     "hours": hours_worked
                 }
+                #Dodanie do listy wpisów
                 insertList.append(log_entry)
-
+                
+                # Wyczyszczenie danych przed następną pętlą
                 entrence_time = None
                 exit_time = None
 
-        for element in insertList:
-            print(element)
-            print("\n")
-        if len(insertList) != 0:
-            myDB[collection_name].insert_many(insertList)
+        if len(insertList) != 0: # Sprawdzanie czy lista nie jest pusta
+            myDB[collection_name].insert_many(insertList) # Wpis do bazy
 

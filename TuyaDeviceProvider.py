@@ -27,7 +27,7 @@ class TuyaDeviceLogProvider:
         openapi.connect()
 
         for code in self.__codes:
-            response = openapi.get(f"/v2.0/cloud/thing/{self.__device_id}/report-logs?codes={code}&end_time=2251515231311&size=100&start_time=1453151331311")
+            response = openapi.get(f"/v1.0/iot-03/devices/{self.__device_id}/report-logs?codes={code}&end_time=2251515231311&size=100&start_time=1453151331311")
             if response.get('result') and response['result'].get('logs'):
                 all_logs.extend(response['result']['logs'])
 

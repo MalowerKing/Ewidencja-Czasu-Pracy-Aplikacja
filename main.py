@@ -77,7 +77,6 @@ if __name__ == '__main__':
                     "time": log['time'],
                 }
                 temp_insert_list.append(temp_dict)
-        temp_insert_list = filter_highest_lowest_times(temp_insert_list) # Filtrowanie Danych
         temp_insert_list.sort(key=lambda x: (x['date'], x['time'])) # Posortowanie pozostałych
 
 

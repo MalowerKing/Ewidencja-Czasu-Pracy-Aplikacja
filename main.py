@@ -82,25 +82,31 @@ if __name__ == '__main__':
 
 
         for element in temp_insert_list: # Iterowanie po elementach listy
-            if entrence_time is None: #Pierwszy rekord danego dnia to wejscie
+            if entrence_time is None: # Pierwszy rekord danego dnia to wejscie
                 entrence_time = element['time']
             else: # Drugi to wyjscie
-                exit_time = element['time']
-                hours_worked = calculate_hours(entrence_time, exit_time) #Liczenie przepracownych godzin
+                login_gap = (datetime.strptime(element['time'], '%H:%M:%S') - datetime.strptime(entrence_time, '%H:%M:%S')).total_seconds() / 60.0 # login_gap w minutach
+                if login_gap > 15:
+                    exit_time = element['time']
+                    hours_worked = calculate_hours(entrence_time, exit_time) # Liczenie przepracownych godzin
 
-                # Uzupełenianie poprawnego wpisu do bazy
-                log_entry = {
-                    "date": element['date'],
-                    "entrence_time": entrence_time,
-                    "exit_time": exit_time,
-                    "hours": hours_worked
-                }
-                #Dodanie do listy wpisów
-                insertList.append(log_entry)
-                
-                # Wyczyszczenie danych przed następną pętlą
-                entrence_time = None
-                exit_time = None
+                    # Uzupełenianie poprawnego wpisu do bazy
+                    log_entry = {
+                        "date": element['date'],
+                        "entrence_time": entrence_time,
+                        "exit_time": exit_time,
+                        "hours": hours_worked
+                    }
+                    # Dodanie do listy wpisów
+                    insertList.append(log_entry)
+                    
+                    # Wyczyszczenie danych przed następną pętlą
+                    entrence_time = None
+                    exit_time = None
+                else:
+                    # Pomiń exit_time
+                    entrence_time = element['time'] # Ustaw nowe entrence_time, jako czas ostatniego pominiętego wpisu
+
 
         if len(insertList) != 0: # Sprawdzanie czy lista nie jest pusta
             myDB[collection_name].insert_many(insertList) # Wpis do bazy

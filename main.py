@@ -93,8 +93,7 @@ if __name__ == '__main__':
             if entrence_time is None: # Pierwszy rekord danego dnia to wejscie
                 entrence_time = element
                 if index == len(temp_insert_list):
-                    # Uzupełenianie poprawnego wpisu do bazy
-                    print(entrence_time['date'], current_time,str(entrence_time['date']) == str(current_time) ) #Sprawdzanie ostatniego wpisu
+                    # Uzupełenianie poprawnego wpisu do bazy) #Sprawdzanie ostatniego wpisu
                     if str(entrence_time['date']) == str(current_time): #Pracownik jest obecny jeżeli data jest dzisiejsza
                         log_entry = {
                             "date": element['date'],
@@ -169,8 +168,6 @@ if __name__ == '__main__':
                     { "$set" : {
                         "active": "Obecny"}
                     })
-                    print(temp_insert)
-                    print("\n")
                     insertActiveUsers.append(temp_insert)
                     Active = True
                     break
@@ -182,7 +179,5 @@ if __name__ == '__main__':
                     "active": "NieObecny"}
                 })
                 insertActiveUsers.append(temp_insert)
-                print(temp_insert)
-                print("\n")
             print(myDB[collection_name].bulk_write(bulkWrite, False) )#Zapis do Bazy danych CzasPracy
     print(myPracownicy["PracownicyID"].bulk_write(insertActiveUsers, False))

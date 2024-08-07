@@ -86,7 +86,6 @@ if __name__ == '__main__':
                 }
                 temp_insert_list.append(temp_dict)
         temp_insert_list.sort(key=lambda x: (x['date'], x['time'])) # Posortowanie pozostałych
-
         index = 0
         for element in temp_insert_list: # Iterowanie po elementach listy
             index += 1 # index sprawdzający czy yo nie jest ostatni element w tablicy
@@ -105,7 +104,7 @@ if __name__ == '__main__':
                         log_entry = {
                             "date": element['date'],
                             "entrence_time": entrence_time['time'],
-                            "exit_time": "Nie poprawne odbicie",
+                            "exit_time": "Brak drugiego odbicia",
                             "hours": 0
                         }
                     # Dodanie do listy wpisów
@@ -121,7 +120,7 @@ if __name__ == '__main__':
                     log_entry = {
                         "date": entrence_time['date'],
                         "entrence_time": entrence_time['time'],
-                        "exit_time": "Nie poprawne odbicie",
+                        "exit_time": "Brak drugiego odbicia",
                         "hours": 0
                     }
                     insertList.append(log_entry)
@@ -143,7 +142,25 @@ if __name__ == '__main__':
                     # Wyczyszczenie danych przed następną pętlą
                     entrence_time = None
                     exit_time = None
+
                 else:
+                    if index == len(temp_insert_list):
+                        # Uzupełenianie poprawnego wpisu do bazy) #Sprawdzanie ostatniego wpisu
+                        if str(entrence_time['date']) == str(current_time): #Pracownik jest obecny jeżeli data jest dzisiejsza
+                            log_entry = {
+                                "date": element['date'],
+                                "entrence_time": entrence_time['time'],
+                                "exit_time": "Obecny",
+                                "hours": 0
+                            }
+                        else: #Albo ma nie poprawne odbicie
+                            log_entry = {
+                                "date": element['date'],
+                                "entrence_time": entrence_time['time'],
+                                "exit_time": "Brak drugiego odbicia",
+                                "hours": 0
+                            }
+                        insertList.append(log_entry)
                     # Pomiń exit_time
                     pass # Ustaw nowe entrence_time, jako czas ostatniego pominiętego wpisu
 
@@ -180,4 +197,5 @@ if __name__ == '__main__':
                 })
                 insertActiveUsers.append(temp_insert)
             print(myDB[collection_name].bulk_write(bulkWrite, False) )#Zapis do Bazy danych CzasPracy
+    myPracownicy["PracownicyID"].update_many({}, {"$set": {"active" : "NieObecny"}})
     print(myPracownicy["PracownicyID"].bulk_write(insertActiveUsers, False))

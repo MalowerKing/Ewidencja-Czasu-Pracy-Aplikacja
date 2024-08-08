@@ -110,8 +110,7 @@ if __name__ == '__main__':
                     # Dodanie do listy wpisów
                     insertList.append(log_entry)
 
-                    # Wyczyszczenie danych przed następną pętlą
-                    entrence_time = None
+                    # Wyczyszczenie danych przed następną
                     exit_time = None
 
             else: # Drugi to wyjscie
@@ -124,6 +123,25 @@ if __name__ == '__main__':
                         "hours": 0
                     }
                     insertList.append(log_entry)
+                    if index == len(temp_insert_list):
+                        # Uzupełenianie poprawnego wpisu do bazy) #Sprawdzanie ostatniego wpisu
+                        entrence_time = element
+                        if str(entrence_time['date']) == str(current_time): #Pracownik jest obecny jeżeli data jest dzisiejsza
+                            log_entry = {
+                                "date": element['date'],
+                                "entrence_time": entrence_time['time'],
+                                "exit_time": "Obecny",
+                                "hours": 0
+                            }
+                        else: #Albo ma nie poprawne odbicie
+                            log_entry = {
+                                "date": element['date'],
+                                "entrence_time": entrence_time['time'],
+                                "exit_time": "Brak drugiego odbicia",
+                                "hours": 0
+                            }
+                        # Dodanie do listy wpisów
+                        insertList.append(log_entry)
                     entrence_time = element
                 elif login_gap > 15: # Sprawdzanie czy nie jest to pomyłka przy odbiciu
                     exit_time = element['time']
@@ -144,25 +162,24 @@ if __name__ == '__main__':
                     exit_time = None
 
                 else:
-                    if index == len(temp_insert_list):
-                        # Uzupełenianie poprawnego wpisu do bazy) #Sprawdzanie ostatniego wpisu
-                        if str(entrence_time['date']) == str(current_time): #Pracownik jest obecny jeżeli data jest dzisiejsza
-                            log_entry = {
-                                "date": element['date'],
-                                "entrence_time": entrence_time['time'],
-                                "exit_time": "Obecny",
-                                "hours": 0
-                            }
-                        else: #Albo ma nie poprawne odbicie
-                            log_entry = {
-                                "date": element['date'],
-                                "entrence_time": entrence_time['time'],
-                                "exit_time": "Brak drugiego odbicia",
-                                "hours": 0
-                            }
-                        insertList.append(log_entry)
+                    # Uzupełenianie poprawnego wpisu do bazy) #Sprawdzanie ostatniego wpisu
+                    if str(entrence_time['date']) == str(current_time): #Pracownik jest obecny jeżeli data jest dzisiejsza
+                        log_entry = {
+                            "date": element['date'],
+                            "entrence_time": entrence_time['time'],
+                            "exit_time": "Obecny",
+                            "hours": 0
+                        }
+                    else: #Albo ma nie poprawne odbicie
+                        log_entry = {
+                            "date": element['date'],
+                            "entrence_time": entrence_time['time'],
+                            "exit_time": "Brak drugiego odbicia",
+                            "hours": 0
+                        }
+                    insertList.append(log_entry)
                     # Pomiń exit_time
-                    pass # Ustaw nowe entrence_time, jako czas ostatniego pominiętego wpisu
+                    # Ustaw nowe entrence_time, jako czas ostatniego pominiętego wpisu
 
         if len(insertList) != 0: # Sprawdzanie czy lista nie jest pusta
             # myDB[collection_name].insert_many(insertList) # Wpis do bazy

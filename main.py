@@ -96,6 +96,7 @@ if __name__ == '__main__':
                     if str(entrence_time['date']) == str(current_time): #Pracownik jest obecny jeżeli data jest dzisiejsza
                         log_entry = {
                             "date": element['date'],
+                            "type": "o",
                             "entrence_time": entrence_time['time'],
                             "exit_time": "Obecny",
                             "hours": 0
@@ -103,6 +104,7 @@ if __name__ == '__main__':
                     else: #Albo ma nie poprawne odbicie
                         log_entry = {
                             "date": element['date'],
+                            "type": "o",
                             "entrence_time": entrence_time['time'],
                             "exit_time": "Brak drugiego odbicia",
                             "hours": 0
@@ -115,9 +117,11 @@ if __name__ == '__main__':
 
             else: # Drugi to wyjscie
                 login_gap = (datetime.strptime(str(element['time']), '%H:%M:%S') - datetime.strptime(entrence_time['time'], '%H:%M:%S')).total_seconds() / 60.0 # login_gap w minutach
+                print(login_gap)
                 if element['date'] != entrence_time['date']: #Sprawdzenie czy zostało poprawnie odbita karta na wyjściu
                     log_entry = {
                         "date": entrence_time['date'],
+                        "type": "o",
                         "entrence_time": entrence_time['time'],
                         "exit_time": "Brak drugiego odbicia",
                         "hours": 0
@@ -129,13 +133,16 @@ if __name__ == '__main__':
                         if str(entrence_time['date']) == str(current_time): #Pracownik jest obecny jeżeli data jest dzisiejsza
                             log_entry = {
                                 "date": element['date'],
+                                "type": "o",
                                 "entrence_time": entrence_time['time'],
                                 "exit_time": "Obecny",
                                 "hours": 0
                             }
+                            print("W pierwszym")
                         else: #Albo ma nie poprawne odbicie
                             log_entry = {
                                 "date": element['date'],
+                                "type": "o",
                                 "entrence_time": entrence_time['time'],
                                 "exit_time": "Brak drugiego odbicia",
                                 "hours": 0
@@ -143,13 +150,14 @@ if __name__ == '__main__':
                         # Dodanie do listy wpisów
                         insertList.append(log_entry)
                     entrence_time = element
-                elif login_gap > 15: # Sprawdzanie czy nie jest to pomyłka przy odbiciu
+                elif login_gap > 2: # Sprawdzanie czy nie jest to pomyłka przy odbiciu
                     exit_time = element['time']
                     hours_worked = calculate_hours(entrence_time['time'], exit_time) # Liczenie przepracownych godzin
 
                     # Uzupełenianie poprawnego wpisu do bazy
                     log_entry = {
                         "date": element['date'],
+                        "type": "o",
                         "entrence_time": entrence_time['time'],
                         "exit_time": exit_time,
                         "hours": hours_worked
@@ -163,36 +171,77 @@ if __name__ == '__main__':
 
                 else:
                     # Uzupełenianie poprawnego wpisu do bazy) #Sprawdzanie ostatniego wpisu
-                    if str(entrence_time['date']) == str(current_time): #Pracownik jest obecny jeżeli data jest dzisiejsza
+                    if str(entrence_time['date']) == str(current_time) and index == len(temp_insert_list): #Pracownik jest obecny jeżeli data jest dzisiejsza
                         log_entry = {
                             "date": element['date'],
+                            "type": "o",
                             "entrence_time": entrence_time['time'],
                             "exit_time": "Obecny",
                             "hours": 0
                         }
-                    else: #Albo ma nie poprawne odbicie
+                        print("W drugim")
+                    elif index == len(temp_insert_list): #Albo ma nie poprawne odbicie
                         log_entry = {
                             "date": element['date'],
+                            "type": "o",
                             "entrence_time": entrence_time['time'],
                             "exit_time": "Brak drugiego odbicia",
                             "hours": 0
                         }
+                    else:
+                        pass
                     insertList.append(log_entry)
                     # Pomiń exit_time
                     # Ustaw nowe entrence_time, jako czas ostatniego pominiętego wpisu
 
+        first = None # Wykrywaanie i opisywanie przerw
+        second = None
+        insertListTemp = []
+        for element in insertList:
+            if element["hours"] != 0:
+                if first == None:
+                    first = element
+                else:
+                    second = element
+                    if second["date"] == first["date"]:
+                        log_entry = {
+                            "date": element['date'],
+                            "type": "w",
+                            "entrence_time": first['exit_time'],
+                            "exit_time": second['entrence_time'],
+                        }
+                        # Dodanie do listy wpisów
+                        insertListTemp.append(log_entry)
+                    first = second
+        for element in insertListTemp:
+            # if element['hours'] > 0:
+            insertList.append(element)
+        print(insertList)
+
+        # print(insertList)
         if len(insertList) != 0: # Sprawdzanie czy lista nie jest pusta
-            # myDB[collection_name].insert_many(insertList) # Wpis do bazy
             for insert in insertList: # tworzenie Query writeBulk
-                temp_insert = pymongo.UpdateOne({
+                if insert["type"] == "w":
+                    temp_insert = pymongo.UpdateOne({
                         'date' : insert['date'],
                         'entrence_time' : insert['entrence_time']},
                     { "$set" : {
                         "date": insert['date'],
+                        "type": insert["type"],
                         "entrence_time": insert['entrence_time'],
-                        "exit_time": insert['exit_time'],
-                        "hours": insert['hours'] }
+                        "exit_time": insert['exit_time']}
                     }, True)
+                else:
+                    temp_insert = pymongo.UpdateOne({
+                            'date' : insert['date'],
+                            'entrence_time' : insert['entrence_time']},
+                        { "$set" : {
+                            "date": insert['date'],
+                            "type": insert["type"],
+                            "entrence_time": insert['entrence_time'],
+                            "exit_time": insert['exit_time'],
+                            "hours": insert['hours'] }
+                        }, True)
                 bulkWrite.append(temp_insert)
             for element in insertList:
                 if element['exit_time'] == "Obecny":

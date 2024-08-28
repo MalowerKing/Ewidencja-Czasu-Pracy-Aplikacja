@@ -1,8 +1,9 @@
-from  pymongo import MongoClient
-from pymongo.server_api import ServerApi
-import pymongo
+from  pymongo import MongoClient 
+from pymongo.server_api import ServerApi 
+import pymongo 
 from TuyaDeviceProvider import *
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+import time
 from collections import defaultdict
 import Credentials
 
@@ -79,11 +80,12 @@ if __name__ == '__main__':
         exit_time = None
         #Iterowanie po logach, tworzenie pomocniczej tabeli
         for log in logs:
-            if log['value'] == pracownik['cardID'] or log['value'] == pracownik['FingerID']: # Znajdowanie w logach pasujacych kodów odcisków
+            if (log['value'] == pracownik['cardID'] or log['value'] == pracownik['FingerID']) and (datetime.now()-timedelta(days=3)).timestamp()<datetime.strptime(log["date"], "%Y-%m-%d").timestamp(): # Znajdowanie w logach pasujacych kodów odcisków
                 temp_dict = {
                     "date": log['date'],
                     "time": log['time'],
                 }
+                print(log)
                 temp_insert_list.append(temp_dict)
         temp_insert_list.sort(key=lambda x: (x['date'], x['time'])) # Posortowanie pozostałych
         index = 0
@@ -114,6 +116,7 @@ if __name__ == '__main__':
 
                     # Wyczyszczenie danych przed następną
                     exit_time = None
+                    entrence_time = None
 
             else: # Drugi to wyjscie
                 login_gap = (datetime.strptime(str(element['time']), '%H:%M:%S') - datetime.strptime(entrence_time['time'], '%H:%M:%S')).total_seconds() / 60.0 # login_gap w minutach
@@ -216,11 +219,13 @@ if __name__ == '__main__':
         for element in insertListTemp:
             # if element['hours'] > 0:
             insertList.append(element)
-        print(insertList)
+
+
 
         # print(insertList)
         if len(insertList) != 0: # Sprawdzanie czy lista nie jest pusta
             for insert in insertList: # tworzenie Query writeBulk
+                print(insert)
                 if insert["type"] == "w":
                     temp_insert = pymongo.UpdateOne({
                         'date' : insert['date'],
